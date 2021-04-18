@@ -1,7 +1,24 @@
 package main
 
-import "fmt"
+import (
+	"github.com/BurkClik/Appointment-API/handler"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+)
 
 func main() {
-	fmt.Print("Hello World")
+	// Echo instance
+	e := echo.New()
+
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+
+	// Routes
+	e.GET("/", handler.Hello)
+	e.POST("/signup", handler.Signup)
+
+	// Start server
+	e.Logger.Fatal(e.Start(":1323"))
 }
