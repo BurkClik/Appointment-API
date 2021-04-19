@@ -17,7 +17,9 @@ func main() {
 
 	// Routes
 	e.GET("/", handler.Hello)
+
 	e.POST("/signup", handler.Signup)
+	e.POST("/signup/doctor", handler.SignupDoctor)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
