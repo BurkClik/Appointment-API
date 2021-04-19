@@ -19,6 +19,7 @@ func main() {
 	e.GET("/", handler.Hello)
 
 	e.POST("/signup", handler.Signup)
+	e.POST("/login", handler.Login)
 	e.POST("/signup/doctor", handler.SignupDoctor)
 
 	// Start server
