@@ -37,43 +37,17 @@ func Signup(c echo.Context) error {
 	// Validate
 	if user.Mail == "" || user.Name == "" || user.Password == "" {
 		return &echo.HTTPError{Code: http.StatusBadRequest, Message: "invalid email or password"}
-	} else if user.City == "" || user.Gender == "" {
-		return &echo.HTTPError{Code: http.StatusBadRequest, Message: "invalid city or gender"}
 	}
 
 	// Save user
 	insertResult, err := database.Collection("users").InsertOne(context.TODO(), user)
 	if err != nil {
-		log.Fatal(err)
+		return c.JSON(http.StatusOK, "Bu email ile kayıtlı hesap var")
 	}
 
 	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 
 	return c.JSON(http.StatusCreated, user)
-}
-
-
-// SignupDoctor : This is a sign up for doctors
-func SignupDoctor(c echo.Context) error {
-
-	var doctor model.Doctor
-
-	_ = json.NewDecoder(c.Request().Body).Decode(&doctor)
-
-	// Validate
-	if doctor.Mail == "" || doctor.Name == "" || doctor.Password == "" {
-		return &echo.HTTPError{Code: http.StatusBadRequest, Message: "invalid email or password"}
-	}
-
-	// Save doctor
-	insertResult, err := database.Collection("doctors").InsertOne(context.TODO(), doctor)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
-
-	return c.JSON(http.StatusCreated, doctor)
 }
 
 // Login :
@@ -115,4 +89,19 @@ func Login(c echo.Context) (err error) {
 
 	u.Password = "" // Don't send password
 	return c.JSON(http.StatusOK, u)
+}
+
+func DoctorList(c echo.Context) error {
+
+	cursor, err := database.Collection("users").Find(context.TODO(), bson.M{"is_doctor": true})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var doctors []bson.M
+	if err = cursor.All(context.TODO(), &doctors); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, doctors)
 }
