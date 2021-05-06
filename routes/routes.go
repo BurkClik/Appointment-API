@@ -14,6 +14,7 @@ func SetupRoutes(e *echo.Echo) {
 	// Routes
 	e.GET("/", handler.Hello)
 	e.GET("/doctors", handler.DoctorList)
+	e.GET("/search/:query", handler.Search)
 
 	e.POST("/signup", handler.Signup)
 	e.POST("/login", handler.Login)

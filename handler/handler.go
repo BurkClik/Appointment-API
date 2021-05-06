@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
@@ -91,6 +92,7 @@ func Login(c echo.Context) (err error) {
 	return c.JSON(http.StatusOK, u)
 }
 
+// DoctorList :
 func DoctorList(c echo.Context) error {
 
 	cursor, err := database.Collection("users").Find(context.TODO(), bson.M{"is_doctor": true})
@@ -104,4 +106,28 @@ func DoctorList(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, doctors)
+}
+
+// Search :
+func Search(c echo.Context) error {
+
+	query := c.Param("query")
+
+	isDoctor := bson.M{"is_doctor": true}
+	queryResult := bson.M{
+		"$or": []bson.M{bson.M{"name": primitive.Regex{Pattern: query, Options: ""}},
+			bson.M{"doctor.department": primitive.Regex{Pattern: query, Options: ""}}}}
+
+	cursor, err := database.Collection("users").Find(context.TODO(),
+		bson.M{"$and": []bson.M{isDoctor, queryResult}})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, results)
 }
