@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"net/http"
 	"time"
 )
@@ -88,4 +89,19 @@ func Login(c echo.Context) (err error) {
 
 	u.Password = "" // Don't send password
 	return c.JSON(http.StatusOK, u)
+}
+
+func DoctorList(c echo.Context) error {
+
+	cursor, err := database.Collection("users").Find(context.TODO(), bson.M{"is_doctor": true})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var doctors []bson.M
+	if err = cursor.All(context.TODO(), &doctors); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, doctors)
 }
