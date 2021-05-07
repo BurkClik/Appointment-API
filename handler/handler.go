@@ -113,6 +113,8 @@ func Search(c echo.Context) error {
 
 	query := c.Param("query")
 
+	var requestError model.Error
+
 	isDoctor := bson.M{"is_doctor": true}
 	queryResult := bson.M{
 		"$or": []bson.M{bson.M{"name": primitive.Regex{Pattern: query, Options: ""}},
@@ -127,6 +129,12 @@ func Search(c echo.Context) error {
 	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
 		log.Fatal(err)
+	}
+
+	if results == nil {
+		requestError.Code = http.StatusOK
+		requestError.Message = "Aradığınız veri bulunamadı"
+		return c.JSON(http.StatusOK, requestError)
 	}
 
 	return c.JSON(http.StatusOK, results)
