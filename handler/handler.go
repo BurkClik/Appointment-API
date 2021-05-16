@@ -126,8 +126,8 @@ func DoctorList(c echo.Context) error {
 	return c.JSON(http.StatusOK, doctors)
 }
 
-// Search :
-func Search(c echo.Context) error {
+// SearchDoctor :
+func SearchDoctor(c echo.Context) error {
 
 	doctor := c.QueryParam("doctor")
 
@@ -140,6 +140,33 @@ func Search(c echo.Context) error {
 
 	cursor, err := database.Collection("users").Find(context.TODO(),
 		bson.M{"$and": []bson.M{isDoctor, queryResult}})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+
+	if results == nil {
+		requestError.Code = http.StatusOK
+		requestError.Message = "Aradığınız veri bulunamadı"
+		return c.JSON(http.StatusOK, requestError)
+	}
+
+	return c.JSON(http.StatusOK, results)
+}
+
+// SearchHospital :
+func SearchHospital(c echo.Context) error {
+
+	hospital := c.QueryParam("hospital")
+
+	var requestError model.Error
+
+	cursor, err := database.Collection("users").Find(context.TODO(),
+		bson.M{"doctor.hospital": primitive.Regex{Pattern: hospital, Options: ""}})
 	if err != nil {
 		log.Fatal(err)
 	}
