@@ -11,8 +11,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -114,6 +116,31 @@ func Login(c echo.Context) (err error) {
 func DoctorList(c echo.Context) error {
 
 	cursor, err := database.Collection("users").Find(context.TODO(), bson.M{"is_doctor": true})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var doctors []bson.M
+	if err = cursor.All(context.TODO(), &doctors); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, doctors)
+}
+
+// TopRatedDoctors :
+func TopRatedDoctors(c echo.Context) error {
+
+	doctorCount := c.QueryParam("count")
+	i, err := strconv.ParseInt(doctorCount, 10, 32)
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"doctor.vote_rate", -1}})
+
+	limit := options.Find()
+	limit.SetLimit(i)
+
+	cursor, err := database.Collection("users").Find(context.TODO(), bson.M{"is_doctor": true}, findOptions, limit)
 	if err != nil {
 		log.Fatal(err)
 	}
