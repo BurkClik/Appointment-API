@@ -48,6 +48,24 @@ func Signup(c echo.Context) error {
 
 	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 
+	//----------
+	// JWT
+	//----------
+
+	// Create token
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	// Set claims
+	claims := token.Claims.(jwt.MapClaims)
+	claims["id"] = user.ID
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+	// Generate encoded token and send it as response
+	user.Token, err = token.SignedString([]byte(Key))
+	if err != nil {
+		return err
+	}
+
 	return c.JSON(http.StatusCreated, user)
 }
 
@@ -111,14 +129,14 @@ func DoctorList(c echo.Context) error {
 // Search :
 func Search(c echo.Context) error {
 
-	query := c.Param("query")
+	doctor := c.QueryParam("doctor")
 
 	var requestError model.Error
 
 	isDoctor := bson.M{"is_doctor": true}
 	queryResult := bson.M{
-		"$or": []bson.M{bson.M{"name": primitive.Regex{Pattern: query, Options: ""}},
-			bson.M{"doctor.department": primitive.Regex{Pattern: query, Options: ""}}}}
+		"$or": []bson.M{bson.M{"name": primitive.Regex{Pattern: doctor, Options: ""}},
+			bson.M{"doctor.department": primitive.Regex{Pattern: doctor, Options: ""}}}}
 
 	cursor, err := database.Collection("users").Find(context.TODO(),
 		bson.M{"$and": []bson.M{isDoctor, queryResult}})
