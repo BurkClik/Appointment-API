@@ -17,10 +17,15 @@ func SetupRoutes(e *echo.Echo) {
 	e.GET("/toprated/doctors", handler.TopRatedDoctors)
 	e.GET("/search/doctor", handler.SearchDoctor)
 	e.GET("/search/hospital", handler.SearchHospital)
+	e.GET("/user", handler.UserDetail)
+	e.GET("/doctor", handler.DoctorDetail)
+	e.GET("/hospital", handler.HospitalList)
 
 	e.POST("/signup", handler.Signup)
 	e.POST("/login", handler.Login)
+	e.POST("/appointment", handler.GetAppointment)
+	e.POST("/review", handler.MakeReview)
 
 	// Start server
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(":8080"))
 }

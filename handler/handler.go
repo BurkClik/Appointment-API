@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,6 +25,16 @@ const (
 )
 
 var database = helper.ConnectDB()
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
 
 // Hello is
 func Hello(c echo.Context) error {
@@ -41,6 +52,8 @@ func Signup(c echo.Context) error {
 	if user.Mail == "" || user.Name == "" || user.Password == "" {
 		return &echo.HTTPError{Code: http.StatusBadRequest, Message: "invalid email or password"}
 	}
+
+	user.Password, _ = HashPassword(user.Password)
 
 	// Save user
 	insertResult, err := database.Collection("users").InsertOne(context.TODO(), user)
@@ -128,6 +141,21 @@ func DoctorList(c echo.Context) error {
 	return c.JSON(http.StatusOK, doctors)
 }
 
+// HospitalList :
+func HospitalList(c echo.Context) error {
+	cursor, err := database.Collection("hospitals").Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var hospitals []bson.M
+	if err = cursor.All(context.TODO(), &hospitals); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, hospitals)
+}
+
 // TopRatedDoctors :
 func TopRatedDoctors(c echo.Context) error {
 
@@ -210,4 +238,91 @@ func SearchHospital(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, results)
+}
+
+// UserDetail :
+func UserDetail(c echo.Context) error {
+	mail := c.QueryParam("mail")
+
+	filterCursor, err := database.Collection("users").Find(context.TODO(), bson.M{"mail": mail})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var userFiltered []bson.M
+	if err = filterCursor.All(context.TODO(), &userFiltered); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, userFiltered)
+}
+
+func DoctorDetail(c echo.Context) error {
+	id := c.QueryParam("_id")
+
+	var requestError model.Error
+
+	log.Println("id -> " + id)
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		requestError.Code = http.StatusOK
+		requestError.Message = err.Error()
+		return c.JSON(http.StatusOK, requestError)
+	}
+
+	var doctor bson.M
+
+	if err = database.Collection("users").FindOne(context.Background(), bson.M{"_id": objectId}).Decode(&doctor); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, doctor)
+}
+
+func GetAppointment(c echo.Context) error {
+	userId := c.QueryParam("_id")
+
+	var appointment model.Appointment
+
+	_ = json.NewDecoder(c.Request().Body).Decode(&appointment)
+
+	log.Println("Saat " + appointment.Hour)
+
+	id, _ := primitive.ObjectIDFromHex(userId)
+
+	who := bson.M{"_id": id}
+
+	updateAppointment := bson.D{{"$push", bson.D{{"appointment", appointment}}}}
+
+	result, err := database.Collection("users").UpdateOne(context.TODO(), who, updateAppointment)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+func MakeReview(c echo.Context) error {
+	userId := c.QueryParam("_id")
+
+	var review model.Review
+
+	_ = json.NewDecoder(c.Request().Body).Decode(&review)
+
+	id, _ := primitive.ObjectIDFromHex(userId)
+
+	who := bson.M{"_id": id}
+
+	updateReview := bson.D{{"$push", bson.D{{"review", review}}}}
+
+	result, err := database.Collection("users").UpdateOne(context.TODO(), who, updateReview)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return c.JSON(http.StatusOK, result)
 }
